@@ -127,40 +127,33 @@ class QuestionsView:
             messagebox.showerror("Error", "Selecciona una asignatura.")
             return
 
-        raw_questions = re.split(r';\s*', text)
+        text_norm = re.sub(r'\n+', ' ', text)
+        pattern = r'([^?]*\?)(\s*\d\..*?)(;[A-C])'
+
         parsed = []
         errors = []
 
-        for i, block in enumerate(raw_questions):
-            block = block.strip()
-            if not block:
+        for match in re.finditer(pattern, text_norm, re.DOTALL):
+            enunc = match.group(1).strip()
+            opts_raw = match.group(2).strip()
+            correct_letter = match.group(3)[1].upper()
+
+            opts = re.findall(r'(\d)\.\s*([^\d;].*?)(?=\s+\d\.|$)', opts_raw, re.DOTALL)
+            if len(opts) < 3:
+                errors.append(f"'{enunc[:30]}...' tiene {len(opts)} opciones")
                 continue
 
-            last_q = block.rfind('?')
-            if last_q == -1:
-                errors.append(f"Bloque {i+1}: no se encontró signo de interrogación")
-                continue
+            options = {int(num): opt.strip().rstrip(';') for num, opt in opts}
 
-            enunciado = block[:last_q+1].strip()
-            rest = block[last_q+1:].strip()
-
-            rest_clean = re.sub(r';[ABC]\s*$', '', rest).strip()
-            opts_match = re.findall(r'(\d)\.\s*(.+?)(?=\s+\d\.|$)', rest_clean)
-            if len(opts_match) < 3:
-                errors.append(f"Bloque {i+1}: se esperaban 3 opciones")
-                continue
-
-            options = {int(num): opt.strip() for num, opt in opts_match}
-            correct_letter = rest.strip()[-1].upper()
-            if correct_letter not in ("A", "B", "C"):
-                errors.append(f"Bloque {i+1}: respuesta correcta inválida '{correct_letter}'")
+            if not all(k in options for k in [1, 2, 3]):
+                errors.append(f"'{enunc[:30]}...' opciones faltantes")
                 continue
 
             q = {
-                "text": enunciado,
-                "a": options.get(1, ""),
-                "b": options.get(2, ""),
-                "c": options.get(3, ""),
+                "text": enunc,
+                "a": options[1],
+                "b": options[2],
+                "c": options[3],
                 "correct": correct_letter,
                 "subject_id": subject_id
             }
