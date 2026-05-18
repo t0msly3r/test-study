@@ -136,21 +136,22 @@ class QuestionsView:
             if not block:
                 continue
 
-            match = re.match(r'^(.+?)\?\s*(.+?)$', block)
-            if not match:
-                errors.append(f"Bloque {i+1}: no se encontró formato de pregunta")
+            last_q = block.rfind('?')
+            if last_q == -1:
+                errors.append(f"Bloque {i+1}: no se encontró signo de interrogación")
                 continue
 
-            enunciado = match.group(1).strip() + "?"
-            rest = match.group(2).strip()
+            enunciado = block[:last_q+1].strip()
+            rest = block[last_q+1:].strip()
 
-            opts_match = re.findall(r'(\d)\.\s*(.+?)(?=\s+\d\.|$)', rest)
+            rest_clean = re.sub(r';[ABC]\s*$', '', rest).strip()
+            opts_match = re.findall(r'(\d)\.\s*(.+?)(?=\s+\d\.|$)', rest_clean)
             if len(opts_match) < 3:
                 errors.append(f"Bloque {i+1}: se esperaban 3 opciones")
                 continue
 
             options = {int(num): opt.strip() for num, opt in opts_match}
-            correct_letter = rest[-1].upper()
+            correct_letter = rest.strip()[-1].upper()
             if correct_letter not in ("A", "B", "C"):
                 errors.append(f"Bloque {i+1}: respuesta correcta inválida '{correct_letter}'")
                 continue
