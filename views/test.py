@@ -85,25 +85,31 @@ class TestView:
 
         q = self.questions[self.current_index]
 
+        center_wrapper = tk.Frame(self.content_frame)
+        center_wrapper.pack(expand=True, fill="both", padx=40)
+
         tk.Label(
-            self.content_frame,
+            center_wrapper,
             text=f"Pregunta {self.current_index + 1}/{len(self.questions)}",
             font=("Helvetica", 14, "bold")
         ).pack(pady=10)
 
         tk.Label(
-            self.content_frame,
+            center_wrapper,
             text=q.text,
             font=("Helvetica", 12),
-            wraplength=500,
+            wraplength=700,
             justify="center"
         ).pack(pady=10)
 
         self.selected_answer = tk.StringVar()
 
+        options_frame = tk.Frame(center_wrapper)
+        options_frame.pack(pady=5)
+
         for letter, text in [("A", q.option_a), ("B", q.option_b), ("C", q.option_c)]:
             tk.Radiobutton(
-                self.content_frame,
+                options_frame,
                 text=f"{letter}) {text}",
                 variable=self.selected_answer,
                 value=letter,
@@ -111,9 +117,9 @@ class TestView:
                 anchor="w",
                 wraplength=700,
                 justify="left"
-            ).pack(fill="x", padx=50, pady=4)
+            ).pack(fill="x", pady=4)
 
-        btn_panel = tk.Frame(self.content_frame)
+        btn_panel = tk.Frame(center_wrapper)
         btn_panel.pack(pady=15)
 
         self.btn_confirm = tk.Button(
@@ -166,7 +172,7 @@ class TestView:
         total = self.correct_count + self.wrong_count
 
         result_frame = tk.Frame(self.content_frame, bg="#ecf0f1", bd=2, relief="groove")
-        result_frame.pack(pady=20, padx=40)
+        result_frame.pack(pady=20, padx=40, expand=True)
 
         tk.Label(
             result_frame,
