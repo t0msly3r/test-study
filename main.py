@@ -10,9 +10,9 @@ class App:
     def __init__(self):
         self.root = tk.Tk()
         self.root.title("Study Tests")
-        self.root.geometry("700x600")
+        self.root.geometry("800x650")
         self.root.configure(bg="#2c3e50")
-        self.root.resizable(False, False)
+        self.root.minsize(700, 600)
 
         init_db()
         self.show_menu()

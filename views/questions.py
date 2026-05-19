@@ -184,7 +184,7 @@ class QuestionsView:
             tk.Label(frame, text=f"{i+1}. {q['text']}", font=("Helvetica", 9, "bold"), wraplength=500, anchor="w").pack(anchor="w")
             for j, (letter, key) in enumerate([("A", "a"), ("B", "b"), ("C", "c")]):
                 color_label = "green" if letter == q["correct"] else "gray"
-                tk.Label(frame, text=f"  {letter}) {q[key]}", fg=color_label, font=("Helvetica", 9), anchor="w").pack(anchor="w")
+                tk.Label(frame, text=f"  {letter}) {q[key]}", fg=color_label, font=("Helvetica", 9), anchor="w", wraplength=600).pack(anchor="w", fill="x", padx=2)
 
         self.preview_canvas.configure(state="normal")
 

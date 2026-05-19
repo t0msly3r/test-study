@@ -109,8 +109,9 @@ class TestView:
                 value=letter,
                 font=("Helvetica", 11),
                 anchor="w",
-                width=50
-            ).pack(fill="x", padx=50, pady=2)
+                wraplength=700,
+                justify="left"
+            ).pack(fill="x", padx=50, pady=4)
 
         btn_panel = tk.Frame(self.content_frame)
         btn_panel.pack(pady=15)
