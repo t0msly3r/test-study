@@ -16,6 +16,14 @@ class TestView:
         self.correct_count = 0
         self.wrong_count = 0
 
+        self.btn_retry_during = None
+
+        self.original_questions = None
+        self.original_index = 0
+        self.original_correct = 0
+        self.original_wrong = []
+        self.is_retry_mode = False
+
         title = tk.Label(
             self.frame, text="Hacer Test",
             font=("Helvetica", 20, "bold")
@@ -72,6 +80,14 @@ class TestView:
         self.correct_count = 0
         self.wrong_count = 0
         self.btn_retry.config(state="disabled")
+        if self.btn_retry_during:
+            self.btn_retry_during.config(state="disabled")
+
+        self.original_questions = None
+        self.original_index = 0
+        self.original_correct = 0
+        self.original_wrong = []
+        self.is_retry_mode = False
 
         self.show_question()
 
@@ -127,10 +143,20 @@ class TestView:
         )
         self.btn_confirm.pack(side="left", padx=5)
 
+        self.btn_edit = tk.Button(
+            btn_panel, text="✏️ Editar", command=self.edit_question, width=12
+        )
+        self.btn_edit.pack(side="left", padx=5)
+
         self.btn_next = tk.Button(
             btn_panel, text="Siguiente ➜", command=self.next_question, state="disabled", width=12
         )
         self.btn_next.pack(side="left", padx=5)
+
+        self.btn_retry_during = tk.Button(
+            btn_panel, text="🔁 Repetir Fallos", command=self.retry_wrong_during, state="disabled", width=12
+        )
+        self.btn_retry_during.pack(side="left", padx=5)
 
         tk.Button(
             btn_panel, text="Salir", command=self.exit_test, width=12
@@ -138,6 +164,11 @@ class TestView:
 
         self.feedback_label = tk.Label(self.content_frame, text="", font=("Helvetica", 11))
         self.feedback_label.pack()
+
+        if self.wrong_questions and self.btn_retry_during:
+            self.btn_retry_during.config(state="normal")
+        elif self.btn_retry_during:
+            self.btn_retry_during.config(state="disabled")
 
     def check_answer(self):
         if not self.selected_answer.get():
@@ -214,15 +245,63 @@ class TestView:
             bg="#ecf0f1"
         ).pack(pady=10)
 
-        if self.wrong_count > 0:
-            self.btn_retry.config(state="normal")
+        if self.is_retry_mode:
+            retry_result_frame = tk.Frame(self.content_frame)
+            retry_result_frame.pack(pady=15)
+
+            tk.Button(retry_result_frame, text="▶️ Continuar examen", command=self.continue_original_test, width=18).pack(side="left", padx=5)
+            tk.Button(retry_result_frame, text="⬅️ Volver al menú", command=self.go_back, width=18).pack(side="left", padx=5)
+        else:
+            if self.wrong_count > 0:
+                self.btn_retry.config(state="normal")
+
+    def retry_wrong_during(self):
+        if not self.wrong_questions:
+            messagebox.showwarning("Aviso", "No hay preguntas falladas aún.")
+            return
+
+        self.original_questions = self.questions[:]
+        self.original_index = self.current_index
+        self.original_correct = self.correct_count
+        self.original_wrong = self.wrong_questions[:]
+        self.is_retry_mode = True
+
+        self.questions = self.wrong_questions[:]
+        self.current_index = 0
+        self.wrong_questions = []
+        self.wrong_count = 0
+        self.btn_retry_during.config(state="disabled")
+        self.show_question()
+
+    def continue_original_test(self):
+        self.questions = self.original_questions[:]
+        self.current_index = self.original_index
+        self.correct_count = self.original_correct
+        self.wrong_questions = self.original_wrong[:]
+        self.wrong_count = len(self.wrong_questions)
+        self.is_retry_mode = False
+
+        self.original_questions = None
+        self.original_index = 0
+        self.original_correct = 0
+        self.original_wrong = []
+
+        self.show_question()
 
     def retry_wrong(self):
+        self.original_questions = self.questions[:]
+        self.original_index = 0
+        self.original_correct = self.correct_count
+        self.original_wrong = self.wrong_questions[:]
+        self.is_retry_mode = True
+
         self.questions = self.wrong_questions[:]
         self.current_index = 0
         self.wrong_questions = []
         self.wrong_count = 0
         self.btn_retry.config(state="disabled")
+        if self.btn_retry_during:
+            self.btn_retry_during.config(state="disabled")
         self.show_question()
 
     def exit_test(self):
@@ -231,6 +310,67 @@ class TestView:
                 self.show_results()
         else:
             self.show_results()
+
+    def edit_question(self):
+        q = self.questions[self.current_index]
+
+        popup = tk.Toplevel(self.root)
+        popup.title("Editar Pregunta")
+        popup.geometry("600x450")
+        popup.resizable(False, False)
+
+        tk.Label(popup, text="Editar Pregunta", font=("Helvetica", 16, "bold")).pack(pady=10)
+
+        form_frame = tk.Frame(popup)
+        form_frame.pack(fill="both", expand=True, padx=20, pady=5)
+
+        tk.Label(form_frame, text="Enunciado:").grid(row=0, column=0, sticky="w", pady=5)
+        text_entry = tk.Entry(form_frame, width=60)
+        text_entry.grid(row=0, column=1, pady=5)
+        text_entry.insert(0, q.text)
+
+        opt_entries = {}
+        for j, (letter, key) in enumerate([("A", "option_a"), ("B", "option_b"), ("C", "option_c")]):
+            tk.Label(form_frame, text=f"Opción {letter}:").grid(row=j + 1, column=0, sticky="w", pady=5)
+            entry = tk.Entry(form_frame, width=60)
+            entry.grid(row=j + 1, column=1, pady=5)
+            entry.insert(0, getattr(q, key))
+            opt_entries[key] = entry
+
+        tk.Label(form_frame, text="Correcta:").grid(row=4, column=0, sticky="w", pady=5)
+        correct_combo = ttk.Combobox(form_frame, values=["A", "B", "C"], state="readonly", width=5)
+        correct_combo.grid(row=4, column=1, sticky="w", pady=5)
+        correct_combo.set(q.correct_answer)
+
+        btn_frame = tk.Frame(popup)
+        btn_frame.pack(pady=10)
+
+        def save_edit():
+            new_text = text_entry.get().strip()
+            new_opts = {key: entry.get().strip() for key, entry in opt_entries.items()}
+            new_correct = correct_combo.get()
+
+            if not all([new_text, new_opts["option_a"], new_opts["option_b"], new_opts["option_c"]]):
+                messagebox.showwarning("Aviso", "Completa todos los campos.")
+                return
+            if new_correct not in ("A", "B", "C"):
+                messagebox.showwarning("Aviso", "Respuesta correcta debe ser A, B o C.")
+                return
+
+            Question.update(q.id, new_text, new_opts["option_a"], new_opts["option_b"], new_opts["option_c"], new_correct)
+
+            q.text = new_text
+            q.option_a = new_opts["option_a"]
+            q.option_b = new_opts["option_b"]
+            q.option_c = new_opts["option_c"]
+            q.correct_answer = new_correct
+
+            messagebox.showinfo("Éxito", "Pregunta actualizada.")
+            popup.destroy()
+            self.show_question()
+
+        tk.Button(btn_frame, text="💾 Guardar", command=save_edit, width=12).pack(side="left", padx=5)
+        tk.Button(btn_frame, text="Cancelar", command=popup.destroy, width=12).pack(side="left", padx=5)
 
     def go_back(self):
         self.frame.destroy()

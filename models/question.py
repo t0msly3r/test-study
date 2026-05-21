@@ -38,6 +38,18 @@ class Question:
         conn.close()
 
     @staticmethod
+    def update(question_id, text, option_a, option_b, option_c, correct_answer):
+        conn = get_connection()
+        cursor = conn.cursor()
+        cursor.execute(
+            """UPDATE questions SET text=?, option_a=?, option_b=?, option_c=?, correct_answer=?
+               WHERE id=?""",
+            (text, option_a, option_b, option_c, correct_answer, question_id)
+        )
+        conn.commit()
+        conn.close()
+
+    @staticmethod
     def delete(question_id):
         conn = get_connection()
         cursor = conn.cursor()
