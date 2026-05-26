@@ -128,7 +128,7 @@ class QuestionsView:
             return
 
         text_norm = re.sub(r'\n+', ' ', text)
-        pattern = r'([^?]*\?)(\s*\d\..*?)(;[A-C])'
+        pattern = r'([^?]*\?)(\s*\d\..*?)(;[A-C])(?=\s*(?:[^?]*\?|\s*$))'
 
         parsed = []
         errors = []
