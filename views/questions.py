@@ -128,24 +128,36 @@ class QuestionsView:
             return
 
         text_norm = re.sub(r'\n+', ' ', text)
-        pattern = r'([^?]*\?)(\s*\d\..*?)(\|;[A-C])(?=\s*(?:[^?]*\?|\s*$))'
+        parts = re.split(r'(\|;[A-C])', text_norm)
 
         parsed = []
         errors = []
+        idx = 0
 
-        for idx, match in enumerate(re.finditer(pattern, text_norm, re.DOTALL), 1):
-            enunc = match.group(1).strip()
-            opts_raw = match.group(2).strip()
-            correct_letter = match.group(3)[-1].upper()
+        for i in range(0, len(parts) - 1, 2):
+            text_part = parts[i].strip()
+            if not text_part:
+                continue
+            correct_letter = parts[i + 1][-1].upper()
+            idx += 1
 
-            parts = re.split(r'\s+(?=\d\.)', opts_raw)
+            m = re.match(r'^(.+?)\s+1\.\s*(.*)$', text_part, re.DOTALL)
+            if not m:
+                errors.append(f"[{idx}] No se pudo separar enunciado de opciones: '{text_part[:50]}...'")
+                continue
+
+            enunc = m.group(1).strip()
+            opts_text = m.group(2).strip()
+            opts_raw = f"1. {opts_text}"
+
+            parts_opts = re.split(r'\s+(?=\d\.)', opts_raw)
             opts = []
-            for p in parts:
-                m = re.match(r'(\d)\.\s*(.+)$', p)
-                if m:
-                    opts.append((m.group(1), m.group(2).rstrip(';|')))
+            for p in parts_opts:
+                m2 = re.match(r'(\d)\.\s*(.+)$', p)
+                if m2:
+                    opts.append((m2.group(1), m2.group(2).rstrip(';|')))
             if len(opts) < 3:
-                errors.append(f"[{idx}] '{enunc[:50]}...' | Detectadas: {len(opts)} opciones | Texto: {opts_raw[:100]}...")
+                errors.append(f"[{idx}] '{enunc[:50]}...' | Detectadas: {len(opts)} opciones")
                 continue
 
             options = {int(num): opt.strip().rstrip(';|') for num, opt in opts}
@@ -164,6 +176,9 @@ class QuestionsView:
             }
             parsed.append(q)
 
+        if len(parts) % 2 == 0 and parts[-1].strip():
+            errors.append(f"Texto sobrante sin analizar: '{parts[-1][:50]}...'")
+
         self.parsed_questions = parsed
 
         summary = f"Detectadas: {len(parsed)} preguntas"
@@ -175,7 +190,7 @@ class QuestionsView:
             error_text = "\n".join(errors[:10])
             if len(errors) > 10:
                 error_text += f"\n... y {len(errors)-10} más"
-            tk.Label(self.preview_inner, text=f"⚠️ {error_text}", fg="red", font=("Helvetica", 9), wraplength=600).pack(anchor="w", pady=2)
+            self.root.after(100, lambda: messagebox.showwarning("Errores de análisis", error_text))
 
         for i, q in enumerate(parsed):
             color = "#27ae60" if q["correct"] == "A" else "#3498db" if q["correct"] == "B" else "#9b59b6"
