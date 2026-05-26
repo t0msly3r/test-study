@@ -78,7 +78,7 @@ class QuestionsView:
 
         tk.Label(
             top_frame,
-            text="Formato: ¿pregunta? 1.respuesta 2.respuesta 3.respuesta;correcta",
+            text="Formato: ¿pregunta? 1.respuesta 2.respuesta 3.respuesta|;correcta",
             font=("Helvetica", 9)
         ).pack(side="left")
         tk.Button(top_frame, text="📋 Pegar desde portapapeles", command=self.paste_from_clipboard).pack(side="left", padx=10)
@@ -128,7 +128,7 @@ class QuestionsView:
             return
 
         text_norm = re.sub(r'\n+', ' ', text)
-        pattern = r'([^?]*\?)(\s*\d\..*?)(;[A-C])(?=\s*(?:[^?]*\?|\s*$))'
+        pattern = r'([^?]*\?)(\s*\d\..*?)(\|;[A-C])(?=\s*(?:[^?]*\?|\s*$))'
 
         parsed = []
         errors = []
@@ -136,19 +136,19 @@ class QuestionsView:
         for idx, match in enumerate(re.finditer(pattern, text_norm, re.DOTALL), 1):
             enunc = match.group(1).strip()
             opts_raw = match.group(2).strip()
-            correct_letter = match.group(3)[1].upper()
+            correct_letter = match.group(3)[-1].upper()
 
             parts = re.split(r'\s+(?=\d\.)', opts_raw)
             opts = []
             for p in parts:
                 m = re.match(r'(\d)\.\s*(.+)$', p)
                 if m:
-                    opts.append((m.group(1), m.group(2).rstrip(';')))
+                    opts.append((m.group(1), m.group(2).rstrip(';|')))
             if len(opts) < 3:
                 errors.append(f"[{idx}] '{enunc[:50]}...' | Detectadas: {len(opts)} opciones | Texto: {opts_raw[:100]}...")
                 continue
 
-            options = {int(num): opt.strip().rstrip(';') for num, opt in opts}
+            options = {int(num): opt.strip().rstrip(';|') for num, opt in opts}
 
             if not all(k in options for k in [1, 2, 3]):
                 errors.append(f"[{idx}] '{enunc[:50]}...' | Opciones: {[o for o in options.keys()]}")
