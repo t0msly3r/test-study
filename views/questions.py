@@ -25,6 +25,10 @@ class QuestionsView:
         tk.Label(subject_frame, text="Asignatura:").pack(side="left")
         self.subject_combo = ttk.Combobox(subject_frame, state="readonly", width=30)
         self.subject_combo.pack(side="left", padx=5)
+        tk.Label(subject_frame, text="Opciones:").pack(side="left", padx=(10, 0))
+        self.num_opts_combo = ttk.Combobox(subject_frame, values=["3", "4"], state="readonly", width=3)
+        self.num_opts_combo.current(0)
+        self.num_opts_combo.pack(side="left", padx=5)
         tk.Button(subject_frame, text="Ver preguntas", command=self.view_questions).pack(side="left", padx=5)
 
         self.notebook = ttk.Notebook(self.frame)
@@ -78,7 +82,7 @@ class QuestionsView:
 
         tk.Label(
             top_frame,
-            text="Formato: ¿pregunta? 1.respuesta 2.respuesta 3.respuesta|;correcta",
+            text="Formato: ¿pregunta? 1.respuesta 2.respuesta 3.respuesta [4.respuesta]|;correcta",
             font=("Helvetica", 9)
         ).pack(side="left")
         tk.Button(top_frame, text="📋 Pegar desde portapapeles", command=self.paste_from_clipboard).pack(side="left", padx=10)
@@ -128,7 +132,7 @@ class QuestionsView:
             return
 
         text_norm = re.sub(r'\n+', ' ', text)
-        parts = re.split(r'(\|;[A-C])', text_norm)
+        parts = re.split(r'(\|;[A-D])', text_norm)
 
         parsed = []
         errors = []
@@ -174,6 +178,8 @@ class QuestionsView:
                 "correct": correct_letter,
                 "subject_id": subject_id
             }
+            if 4 in options:
+                q["d"] = options[4]
             parsed.append(q)
 
         if len(parts) % 2 == 0 and parts[-1].strip():
@@ -193,11 +199,11 @@ class QuestionsView:
             self.root.after(100, lambda: messagebox.showwarning("Errores de análisis", error_text))
 
         for i, q in enumerate(parsed):
-            color = "#27ae60" if q["correct"] == "A" else "#3498db" if q["correct"] == "B" else "#9b59b6"
+            color = "#27ae60" if q["correct"] == "A" else "#3498db" if q["correct"] == "B" else "#e67e22" if q["correct"] == "D" else "#9b59b6"
             frame = tk.Frame(self.preview_inner, relief="groove", bd=1)
             frame.pack(fill="x", padx=5, pady=3)
             tk.Label(frame, text=f"{i+1}. {q['text']}", font=("Helvetica", 9, "bold"), wraplength=500, anchor="w").pack(anchor="w")
-            for j, (letter, key) in enumerate([("A", "a"), ("B", "b"), ("C", "c")]):
+            for letter, key in [("A", "a"), ("B", "b"), ("C", "c")] + ([("D", "d")] if "d" in q else []):
                 color_label = "green" if letter == q["correct"] else "gray"
                 tk.Label(frame, text=f"  {letter}) {q[key]}", fg=color_label, font=("Helvetica", 9), anchor="w", wraplength=600).pack(anchor="w", fill="x", padx=2)
 
@@ -205,13 +211,16 @@ class QuestionsView:
 
         self.question_rows = []
         for q in self.parsed_questions:
-            self.question_rows.append({
+            row = {
                 "text": q["text"],
                 "a": q["a"],
                 "b": q["b"],
                 "c": q["c"],
                 "correct": q["correct"]
-            })
+            }
+            if "d" in q:
+                row["d"] = q["d"]
+            self.question_rows.append(row)
 
     def generate_fields(self):
         for widget in self.canvas_frame.winfo_children():
@@ -250,25 +259,27 @@ class QuestionsView:
             text_entry = tk.Entry(row_frame, width=60)
             text_entry.grid(row=0, column=1, pady=2)
 
+            num_opts = int(self.num_opts_combo.get())
+            letters = ["A", "B", "C", "D"][:num_opts]
             entries = [text_entry]
-            for letter in ["A", "B", "C"]:
+            for letter in letters:
                 tk.Label(row_frame, text=f"Opción {letter}:").grid(row=len(entries), column=0, sticky="w")
                 e = tk.Entry(row_frame, width=60)
                 e.grid(row=len(entries), column=1, pady=2)
                 entries.append(e)
 
             tk.Label(row_frame, text="Correcta:").grid(row=len(entries), column=0, sticky="w")
-            correct_combo = ttk.Combobox(row_frame, values=["A", "B", "C"], state="readonly", width=5)
+            correct_combo = ttk.Combobox(row_frame, values=letters, state="readonly", width=5)
             correct_combo.grid(row=len(entries), column=1, sticky="w", pady=2)
             entries.append(correct_combo)
 
-            self.question_rows.append({
+            row = {
                 "text": text_entry,
-                "a": entries[1],
-                "b": entries[2],
-                "c": entries[3],
                 "correct": correct_combo
-            })
+            }
+            for j, letter in enumerate(letters):
+                row[letter.lower()] = entries[j + 1]
+            self.question_rows.append(row)
 
     def save_questions(self):
         subject_id = self.get_subject_id()
@@ -289,22 +300,27 @@ class QuestionsView:
                 opt_a = row["a"].get().strip()
                 opt_b = row["b"].get().strip()
                 opt_c = row["c"].get().strip()
+                opt_d = row["d"].get().strip() if "d" in row else ""
                 correct = row["correct"].get().strip().upper()
             else:
                 text = row["text"]
                 opt_a = row["a"]
                 opt_b = row["b"]
                 opt_c = row["c"]
+                opt_d = row.get("d", "")
                 correct = row["correct"]
 
             if not all([text, opt_a, opt_b, opt_c]):
                 errors.append(f"Fila {i + 1}: completa todos los campos.")
                 continue
-            if correct not in ("A", "B", "C"):
-                errors.append(f"Fila {i + 1}: respuesta correcta debe ser A, B o C.")
+            if "d" in row and not opt_d:
+                errors.append(f"Fila {i + 1}: completa la opción D.")
+                continue
+            if correct not in ("A", "B", "C", "D"):
+                errors.append(f"Fila {i + 1}: respuesta correcta debe ser A, B, C o D.")
                 continue
 
-            questions_data.append((subject_id, text, opt_a, opt_b, opt_c, correct))
+            questions_data.append((subject_id, text, opt_a, opt_b, opt_c, opt_d or None, correct))
 
         if errors:
             messagebox.showerror("Errores en datos", "\n".join(errors))

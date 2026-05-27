@@ -30,7 +30,8 @@ def init_db():
             option_a TEXT NOT NULL,
             option_b TEXT NOT NULL,
             option_c TEXT NOT NULL,
-            correct_answer TEXT NOT NULL CHECK(correct_answer IN ('A', 'B', 'C')),
+            option_d TEXT,
+            correct_answer TEXT NOT NULL CHECK(correct_answer IN ('A', 'B', 'C', 'D')),
             FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE
         )
     """)

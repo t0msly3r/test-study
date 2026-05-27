@@ -123,7 +123,10 @@ class TestView:
         options_frame = tk.Frame(center_wrapper)
         options_frame.pack(pady=5)
 
-        for letter, text in [("A", q.option_a), ("B", q.option_b), ("C", q.option_c)]:
+        options = [("A", q.option_a), ("B", q.option_b), ("C", q.option_c)]
+        if q.option_d:
+            options.append(("D", q.option_d))
+        for letter, text in options:
             tk.Radiobutton(
                 options_frame,
                 text=f"{letter}) {text}",
@@ -330,16 +333,20 @@ class TestView:
         text_entry.insert(0, q.text)
 
         opt_entries = {}
-        for j, (letter, key) in enumerate([("A", "option_a"), ("B", "option_b"), ("C", "option_c")]):
+        letters = [("A", "option_a"), ("B", "option_b"), ("C", "option_c")]
+        if q.option_d:
+            letters.append(("D", "option_d"))
+        for j, (letter, key) in enumerate(letters):
             tk.Label(form_frame, text=f"Opción {letter}:").grid(row=j + 1, column=0, sticky="w", pady=5)
             entry = tk.Entry(form_frame, width=60)
             entry.grid(row=j + 1, column=1, pady=5)
             entry.insert(0, getattr(q, key))
             opt_entries[key] = entry
 
-        tk.Label(form_frame, text="Correcta:").grid(row=4, column=0, sticky="w", pady=5)
-        correct_combo = ttk.Combobox(form_frame, values=["A", "B", "C"], state="readonly", width=5)
-        correct_combo.grid(row=4, column=1, sticky="w", pady=5)
+        correct_values = [l for l, _ in letters]
+        tk.Label(form_frame, text="Correcta:").grid(row=len(letters) + 1, column=0, sticky="w", pady=5)
+        correct_combo = ttk.Combobox(form_frame, values=correct_values, state="readonly", width=5)
+        correct_combo.grid(row=len(letters) + 1, column=1, sticky="w", pady=5)
         correct_combo.set(q.correct_answer)
 
         btn_frame = tk.Frame(popup)
@@ -353,16 +360,21 @@ class TestView:
             if not all([new_text, new_opts["option_a"], new_opts["option_b"], new_opts["option_c"]]):
                 messagebox.showwarning("Aviso", "Completa todos los campos.")
                 return
-            if new_correct not in ("A", "B", "C"):
-                messagebox.showwarning("Aviso", "Respuesta correcta debe ser A, B o C.")
+            if "option_d" in new_opts and not new_opts["option_d"]:
+                messagebox.showwarning("Aviso", "Completa todos los campos.")
+                return
+            if new_correct not in ("A", "B", "C", "D"):
+                messagebox.showwarning("Aviso", "Respuesta correcta debe ser A, B, C o D.")
                 return
 
-            Question.update(q.id, new_text, new_opts["option_a"], new_opts["option_b"], new_opts["option_c"], new_correct)
+            Question.update(q.id, new_text, new_opts["option_a"], new_opts["option_b"], new_opts["option_c"], new_opts.get("option_d", ""), new_correct)
 
             q.text = new_text
             q.option_a = new_opts["option_a"]
             q.option_b = new_opts["option_b"]
             q.option_c = new_opts["option_c"]
+            if "option_d" in new_opts:
+                q.option_d = new_opts["option_d"]
             q.correct_answer = new_correct
 
             messagebox.showinfo("Éxito", "Pregunta actualizada.")
