@@ -36,5 +36,9 @@ def init_db():
         )
     """)
 
-    conn.commit()
+    try:
+        cursor.execute("ALTER TABLE questions ADD COLUMN option_d TEXT")
+        conn.commit()
+    except sqlite3.OperationalError:
+        pass
     conn.close()
