@@ -303,7 +303,7 @@ class TestView:
         self.wrong_questions = []
         self.wrong_count = 0
         self.btn_retry.config(state="disabled")
-        if self.btn_retry_during:
+        if self.btn_retry_during and self.btn_retry_during.winfo_exists():
             self.btn_retry_during.config(state="disabled")
         self.show_question()
 
